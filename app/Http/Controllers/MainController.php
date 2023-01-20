@@ -706,12 +706,12 @@ class MainController extends Controller
     public function allocate(Request $request,$id)
     {
         $request->validate([
-            'type' => 'required',
+            'allocation_type' => 'required',
         ]);
         
         $approved_request=ApprovedRequest::where('id',  $id )->update([
             'allocated' =>'yes',
-            'allocation_type' => $request->type
+            'allocation_type' => $request->allocation_type
         ]); 
         return $this->successResponse("Action successful");
 
@@ -720,11 +720,11 @@ class MainController extends Controller
     public function survey_plan(Request $request,$id)
     {
         $request->validate([
-            'type' => 'required',
+            'survey_plan' => 'required',
         ]);
         
         $approved_request=ApprovedRequest::where('id',  $id )->update([
-            'survey_plan' => $request->type
+            'survey_plan' => $request->survey_plan
         ]); 
         return $this->successResponse("Action successful");
 
@@ -733,11 +733,11 @@ class MainController extends Controller
     public function assignment_type(Request $request,$id)
     {
         $request->validate([
-            'type' => 'required',
+            'deed_of_assignment_type' => 'required',
         ]);
         
         $approved_request=ApprovedRequest::where('id',  $id )->update([
-            'deed_of_assignment_type' => $request->type,
+            'deed_of_assignment_type' => $request->deed_of_assignment_type,
              'deed_of_assignment' => 'assigned'
         ]); 
         return $this->successResponse("Action successful");
