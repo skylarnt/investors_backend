@@ -209,10 +209,12 @@ class MainController extends Controller
             'request_id' => 'required|unique:approved_requests',
         ]);
 
-        // USED BOOT METHOD ON MODEL ApprovedRequest
         $approve_request = new ApprovedRequest;
         $approve_request->name = $request->name;
         $approve_request->amount = $request->amount;
+        if($request->has("custom_price")) {
+            $approve_request->amount_used = "custom";
+        }
         $approve_request->request_id = $request->request_id;
         $approve_request->type = $request->type;
        
