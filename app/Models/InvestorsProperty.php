@@ -18,7 +18,7 @@ class InvestorsProperty extends   Authenticatable  implements JWTSubject
     protected $table="investors_properties";
     protected $guarded = [];
 
-    protected $casts=["image"=> "array", "filename"=> "array"];
+    protected $casts=["image"=> "array", "filename"=> "array", "square_meters_info" => "array"];
 
     public function getJWTIdentifier()
     {

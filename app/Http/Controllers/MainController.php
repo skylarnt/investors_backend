@@ -42,6 +42,9 @@ class MainController extends Controller
        $userRequest->investor_id=  auth()->user()->id;
        if(! $request->has("pi"))  $userRequest->is_special=  "yes";
        if($request->has("pi"))  $userRequest->investor_property_id=  $request->pi;
+       if($request->has("sqm_price"))  $userRequest->square_meter_price=  $request->sqm_price;
+
+
        $userRequest->save();
        
 
@@ -259,6 +262,8 @@ class MainController extends Controller
 
             }
         ])
+        ->orderBy('created_at', 'desc')
+
         ->get());
     }
     public function completed_request()
@@ -277,6 +282,8 @@ class MainController extends Controller
             }
         ])
         ->where('status', 'completed')
+        ->orderBy('created_at', 'desc')
+
         ->get());
     }
     public function all_approved_request(Request $request)
@@ -447,6 +454,7 @@ class MainController extends Controller
             'description' => 'required',
             'status' => 'required|string',
             'type' => 'required|string',
+            'squareMeters' => 'required',
         ]);
 
 
@@ -469,11 +477,12 @@ class MainController extends Controller
 
         $create = new InvestorsProperty;
         $create->name =$request->name;
-        $create->amount =$request->amount;
+        // $create->amount =$request->amount;
         $create->location =$request->location;
         $create->description =$request->description;
         $create->status =$request->status;
         $create->type =$request->type;
+        $create->square_meters_info =$request->squareMeters;
         if($request->has("property_link") && !is_null($request->property_link))  $create->property_link =$request->property_link;
         if($request->has("video_link") && !is_null($request->video_link))  $create->video_link =$request->video_link;
         $create->save() ;
@@ -575,10 +584,11 @@ class MainController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string',
-            'amount' => 'required|integer',
+            // 'amount' => 'required|integer',
             'location' => 'required|string',
             'description' => 'required|string',
             'status' => 'required|string',
+
         ]);
 
         if($validator->fails()){
@@ -591,6 +601,8 @@ class MainController extends Controller
         $property->amount = request()->amount;
         $property->location = request()->location;
         $property->description = request()->description;
+        $property->square_meters_info =request()->square_meters_info;
+
          $property->status = request()->status;
          $property->property_link =$request->property_link;
           $property->video_link =$request->video_link;
