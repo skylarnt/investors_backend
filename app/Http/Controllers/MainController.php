@@ -133,7 +133,7 @@ class MainController extends Controller
         ->with('property')
         ->withCount(['request_conversation'])
         ->orderBy('created_at', 'desc')
-        ->get());
+        ->paginate(50));
 
     }
 
@@ -299,7 +299,7 @@ class MainController extends Controller
             }
         ])
         ->orderBy('created_at', 'desc')
-        ->get());
+        ->paginate(20));
     }
 
     public function get_transactions(Request $request)
@@ -371,6 +371,50 @@ class MainController extends Controller
         ]);
         if($record) return $this->successResponse('Receipt recorded');
         return $this->failureResponse("Receipt cannot be recorded",null, 405);
+
+    }
+
+    public function update_transaction_breakdown(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required',
+        ]);
+        $old= RequestTransaction::where('id', $request->id)->first();
+        $update= RequestTransaction::where('id', $request->id)->update([
+            'amount' => $request->amount
+        ]);
+        if($update) {
+            $lname = auth()->user()->lname;
+            $fname = auth()->user()->fname;
+            $email = auth()->user()->email;
+            $details =  $lname.' '.$fname.' '.$email.' Updated Payment details';
+            activity()
+   ->withProperties(['old_value' => $old->amount, 'new_amount' => $request->amount])
+   ->log($details);
+            return $this->successResponse('Payment Updated');
+        }
+        else {
+            return $this->failureResponse("Payment cannot be updated",null, 405);
+        }
+
+    }
+    public function delete_transaction_breakdown(Request $request, $id)
+    {
+        $old= RequestTransaction::where('id', $id)->first();
+        $delete= RequestTransaction::where('id', $id)->delete();
+        if($delete) {
+            $lname = auth()->user()->lname;
+            $fname = auth()->user()->fname;
+            $email = auth()->user()->email;
+            $details =  $lname.' '.$fname.' '.$email.' Deleted Payment details';
+            activity()
+   ->withProperties(['old_value' => $old->amount, 'new_amount' => '0'])
+   ->log($details);
+            return $this->successResponse('Payment Deleted');
+        }
+        else {
+            return $this->failureResponse("Payment cannot be deleted",null, 405);
+        }
 
     }
     public function change_contract_status(Request $request)
@@ -545,7 +589,7 @@ class MainController extends Controller
                     ->orWhere([['phone', 'LIKE', "%{$searchData}%"], ['user_type', '!=', 'admin']]);
             }
         }
-        return $this->successResponse("All users", $users->orderBy('created_at', 'desc')->get());
+        return $this->successResponse("All users", $users->orderBy('created_at', 'desc')->paginate(50));
 
 
     }
