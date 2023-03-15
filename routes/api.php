@@ -77,6 +77,7 @@ Route::group(['middleware' => 'api'], function ($router) {
                 Route::post('all_approved_request', [MainController::class, 'all_approved_request']);
                 Route::post('get_transactions', [MainController::class, 'get_transactions']);
                 Route::post('update_transaction_breakdown', [MainController::class, 'update_transaction_breakdown']);
+                Route::post('update_actual_amount', [MainController::class, 'update_actual_amount']);
                 Route::delete('delete_transaction_breakdown/{id}', [MainController::class, 'delete_transaction_breakdown']);
                 Route::post('record_transactions', [MainController::class, 'record_transactions']);
                 Route::post('change_contract_status', [MainController::class, 'change_contract_status']);
