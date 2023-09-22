@@ -92,16 +92,15 @@ class MainController extends Controller
 
     public function marketer_dashboard_analytics()
     {
-        $amount_spent = SellProperty::where([
-            'status' => 'completed',
+        $all_property = SellProperty::where([
             'marketer_id' => auth()->user()->id
-        ])->sum('amount');
+        ])->count();
         $property_sold = SellProperty::where(['status' => 'completed', 'marketer_id' => auth()->user()->id])->count();
         $pending = SellProperty::where([
             ['status', '!=', 'completed'],
             ['marketer_id', '=', auth()->user()->id]
         ])->count();
-        $data = ["amount_spent" => $amount_spent, 'property_sold' => $property_sold, 'pending' => $pending];
+        $data = ["all_property" => $all_property, 'property_sold' => $property_sold, 'pending' => $pending];
 
         $requests =  ApprovedRequest::with(['request'])
 
