@@ -21,13 +21,14 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Mail\SendMailInvestors;
 use App\Models\PasswordReset;
+use App\Models\SellProperty;
 
 class AuthController extends Controller
 {
     //
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login','register', 'sendPasswordResetEmail', 'change_password', 'passwordResetProcess', 'complete_profile', 'getAUser']]);
+        $this->middleware('auth:api', ['except' => ['login','register', 'register_marketer', 'sendPasswordResetEmail', 'change_password', 'passwordResetProcess', 'complete_profile', 'getAUser']]);
     }
 
 
@@ -62,6 +63,56 @@ class AuthController extends Controller
             // $user->delete();
 
             return $this->respondWithToken($token);
+    }
+    public function register_marketer(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'fname' => 'required|string|max:255',
+            'lname' => 'required|string|max:255',
+            'country' => 'required|string|max:255',
+            'phone' => 'required|numeric|unique:users',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|confirmed|string|min:8',
+        ]);
+            if ($validator->fails()) {
+              return response()->json($validator->errors(),405);
+            }
+            $user = new Investor;
+            $user->fname = $request->fname;
+            $user->lname = $request->lname;
+            $user->email = $request->email;
+            $user->phone = $request->phone;
+            $user->country = $request->country;
+            $user->user_type = 'marketer';
+            $user->password = Hash::make($request->password);
+            $user->save();
+         
+            
+            $credentials = request(['email', 'password']);
+
+            if (!$token = auth()->attempt($credentials)) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+            // $user->delete();
+
+            return $this->respondWithToken($token);
+    }
+
+    public function get_marketer(Request $request){
+        $marketers = Investor::where('user_type', 'marketer')->get();
+        return $marketers;
+    }
+
+    public function getMarketerProperty($property_id){
+        $propertywithmarketers = SellProperty::join('users' ,'users.id','marketer_id')
+        ->where(['property_id' => $property_id, 'user_id' => Auth::user()->id])
+        ->get()->toArray();
+        // trying to make marketer id the main id
+        foreach ($propertywithmarketers as $key => $value) {
+            $propertywithmarketers[$key]['id'] = $value['marketer_id'];
+        }
+        return response()->json(['propertywithmarketers' => $propertywithmarketers],200);
+
     }
 
     public function loginAs($user_id)

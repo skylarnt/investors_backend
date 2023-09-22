@@ -12,8 +12,10 @@ use App\Models\Investor;
 use App\Models\InvestorsProperty;
 use App\Models\RequestConversation;
 use App\Models\RequestTransaction;
+use App\Models\SellProperty;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -88,6 +90,36 @@ class MainController extends Controller
         return $this->successResponse('Records', $data);
     }
 
+    public function marketer_dashboard_analytics()
+    {
+        $amount_spent = SellProperty::where([
+            'status' => 'completed',
+            'marketer_id' => auth()->user()->id
+        ])->sum('amount');
+        $property_sold = SellProperty::where(['status' => 'completed', 'marketer_id' => auth()->user()->id])->count();
+        $pending = SellProperty::where([
+            ['status', '!=', 'completed'],
+            ['marketer_id', '=', auth()->user()->id]
+        ])->count();
+        $data = ["amount_spent" => $amount_spent, 'property_sold' => $property_sold, 'pending' => $pending];
+
+        $requests =  ApprovedRequest::with(['request'])
+
+            ->whereHas('request', function ($q) {
+                $q->where('investor_id', auth()->user()->id);
+            })
+            ->withCount([
+                'amount_paid as amount_paid' => function ($q) {
+                    $q->select(DB::raw("SUM(amount) as amount"))
+                        ->where('investor_id', auth()->user()->id);
+                }
+            ])
+            ->get();
+        $data["requests"] = $requests;
+
+        return $this->successResponse('Records', $data);
+    }
+
     public function all_request(Request $request)
     {
         return $this->successResponse(
@@ -124,25 +156,24 @@ class MainController extends Controller
     public function all_request_for_admin(Request $request)
     {
         $approved = InvestorsRequest::withCount(['request_conversation as request_conversation'])
-        ->with(['property', 'investor'])
-        ->withCount(['request_conversation'])
-        ->orderBy('created_at', 'desc');
-        if ($request->has('status') && $request->status !== null ) {
+            ->with(['property', 'investor'])
+            ->withCount(['request_conversation'])
+            ->orderBy('created_at', 'desc');
+        if ($request->has('status') && $request->status !== null) {
             $approved->where('status', $request->status);
         }
         if ($request->has('search') && $request->search !== null) {
-            $approved->whereHas('investor', function($w) use($request) {
-                $w->where('lname', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('fname', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('mname', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('email', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('phone', 'LIKE', '%'.$request->search.'%');
+            $approved->whereHas('investor', function ($w) use ($request) {
+                $w->where('lname', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('fname', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('mname', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('email', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('phone', 'LIKE', '%' . $request->search . '%');
             });
         }
         return response()->json([
             'data' => $approved->paginate(50)
         ]);
-
     }
 
     public function get_conversations(Request $request)
@@ -304,16 +335,16 @@ class MainController extends Controller
                 }
             ])
             ->orderBy('created_at', 'desc');
-        if ($request->has('status') && $request->status !== null ) {
+        if ($request->has('status') && $request->status !== null) {
             $approved->where('status', $request->status);
         }
         if ($request->has('search') && $request->search !== null) {
-            $approved->whereHas('request.investor', function($w) use($request) {
-                $w->where('lname', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('fname', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('mname', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('email', 'LIKE', '%'.$request->search.'%');
-                $w->orWhere('phone', 'LIKE', '%'.$request->search.'%');
+            $approved->whereHas('request.investor', function ($w) use ($request) {
+                $w->where('lname', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('fname', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('mname', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('email', 'LIKE', '%' . $request->search . '%');
+                $w->orWhere('phone', 'LIKE', '%' . $request->search . '%');
             });
         }
         return response()->json([
@@ -329,7 +360,7 @@ class MainController extends Controller
 
 
         return $this->successResponse('All request Transactions', RequestTransaction::where('approved_request_id', $request->approved_request_id)
-            ->orderBy('created_at', 'desc') 
+            ->orderBy('created_at', 'desc')
             ->get());
     }
 
@@ -593,7 +624,7 @@ class MainController extends Controller
 
     public function all_users(Request $request)
     {
-        $users = Investor::where('user_type', '!=', 'admin');
+        $users = Investor::query();
         if ($request->has('filter')) {
             if (!is_null($request->input('filter.search'))) {
                 $searchData = $request->input('filter.search');
@@ -603,8 +634,23 @@ class MainController extends Controller
                     ->orWhere([['email', 'LIKE', "%{$searchData}%"], ['user_type', '!=', 'admin']])
                     ->orWhere([['phone', 'LIKE', "%{$searchData}%"], ['user_type', '!=', 'admin']]);
             }
+            if (!is_null($request->input('filter.usertype'))) {
+                $searchData = $request->input('filter.usertype');
+                $users->where(['user_type' => $searchData]);
+                    
+            }
         }
         return $this->successResponse("All users", $users->orderBy('created_at', 'desc')->paginate(50));
+    }
+
+    public function analytics(Request $request) {
+        $stats = [];
+
+        $stats['tots_admin'] = Investor::where('user_type' , 'admin')->count();
+        $stats['tots_user'] = Investor::where('user_type' , 'user')->count();
+        $stats['tots_marketer'] = Investor::where('user_type' , 'marketer')->count();
+
+        return $this->successResponse("Stats", $stats);
     }
 
     public function update_user_details(Request $request)
@@ -849,5 +895,73 @@ class MainController extends Controller
 
             return $this->failureResponse(__('mainproperty.error'), null, 500);
         }
+    }
+
+    public function attachMarkerters(Request $request, $property_id)
+    {
+        foreach ($request->all() as $marketer) {
+            if ($marketer['amount'] != '') {
+                SellProperty::updateOrCreate([
+                    'property_id' =>  $property_id,
+                    'marketer_id' => $marketer['id'],
+                    'user_id' => Auth::user()->id,
+                ], [
+                    'property_id' =>  $property_id,
+                    'marketer_id' => $marketer['id'],
+                    'amount' => $marketer['amount'],
+                    'user_id' => Auth::user()->id,
+                ]);
+            }
+        }
+        return $this->successResponse("Action successful");
+    }
+
+    public function deleteMarkerters(Request $request, $property_id)
+    {
+        $property = SellProperty::where(['property_id' => $property_id, 'marketer_id' => $request->marketer_id,'user_id' => Auth::user()->id]);
+        if ($property->first()->status == 'pending') {
+            $property->delete();
+            return $this->successResponse("Action successful");
+        } else {
+            return $this->failureResponse("Can't delete property");
+        }
+        // return $property->first();
+    }
+
+    public function getMarketersProperty(Request $request)
+    {
+        // return Auth::user()->id;
+        $property = SellProperty::join('investors_properties', 'investors_properties.id', 'property_id')
+            ->select('*', 'investors_properties.amount as property_price', 'sell_properties.amount as amount_to_be_sold', 'sell_properties.status as property_status')
+            ->where(['marketer_id' => Auth::user()->id]);
+
+        if ($request->has('filter')) {
+            if (!is_null($request->input('filter.status'))) {
+                $searchData = $request->input('filter.status');
+                $property->where('sell_properties.status', $searchData);
+            }
+        }
+        return $this->successResponse("Action successful", $property->paginate(50));
+    }
+
+    public function manageMarketers(Request $request)  {
+        // return 1234;
+        $property = SellProperty::with('marketer','property')->where(['user_id' => Auth::user()->id]);
+        if ($request->has('filter')) {
+            if (!is_null($request->input('filter.status'))) {
+                $searchData = $request->input('filter.status');
+                $property->where('status', $searchData);
+            }
+        }
+        return $this->successResponse("Action successful", $property->paginate(50));
+    }
+    public function ChangeStatus(Request $request, $property_id,$marketer_id)
+    {
+        $property = SellProperty::where(['property_id' => $property_id, 'marketer_id' => $marketer_id])
+            ->update([
+                'status' => $request->status
+            ]);
+
+        return $this->successResponse("Action successful", $property);
     }
 }

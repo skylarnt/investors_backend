@@ -22,7 +22,7 @@ class CreateUsersTable extends Migration
             $table->string('phone')->unique()->nullable();
             $table->enum('gender', ['male', 'female'])->default('male');
             $table->string('country')->nullable();
-            $table->enum('user_type', ['admin', 'user'])->default('user');
+            $table->enum('user_type', ['admin', 'user','marketer'])->default('user');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->rememberToken();

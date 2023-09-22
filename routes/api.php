@@ -24,6 +24,9 @@ Route::group(['middleware' => 'api', 'prefix' => 'auth/investors'], function ($r
     Route::post('/reset-password-request', [AuthController::class, 'sendPasswordResetEmail']);
 
     Route::post('register', [AuthController::class, 'register']);
+    Route::post('register/marketer', [AuthController::class, 'register_marketer']);
+    Route::get('/getmarketer', [AuthController::class, 'get_marketer']);
+    Route::post('/getmarketer-property/{property_id}', [AuthController::class, 'getMarketerProperty']);
     Route::post('user_type', [AuthController::class, 'auth_user_type']);
     Route::post('login', [AuthController::class, 'login']);
     Route::get('login-as/{user_id}', [AuthController::class, 'loginAs']);
@@ -49,6 +52,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::group(['prefix' => 'requests'], function ($router) {
             Route::post('make', [MainController::class, 'make_request']);
             Route::post('dashboard_analytics', [MainController::class, 'dashboard_analytics']);
+            Route::post('marketer_dashboard_analytics', [MainController::class, 'marketer_dashboard_analytics']);
             Route::post('get', [MainController::class, 'all_request']);
             Route::post('reply_message', [MainController::class, 'reply_message_user']);
             Route::post('approved_request', [MainController::class, 'all_approved_request_for_user']);
@@ -106,11 +110,16 @@ Route::group(['middleware' => 'api'], function ($router) {
                 
                 
             });
-            
+            Route::post('attach-marketers/{property_id}', [MainController::class, 'attachMarkerters']);
+            Route::post('delete-marketers/{property_id}', [MainController::class, 'deleteMarkerters']);
+            Route::post('get-marketers-property', [MainController::class, 'getMarketersProperty']);
+            Route::post('manage-marketers-property', [MainController::class, 'manageMarketers']);
+            Route::post('toggle-status/{property_id}/{marketer_id}', [MainController::class, 'ChangeStatus']);
         });
 
         Route::get('dashboard_stats', [MainController::class, 'dashboard_stats']);
         Route::post('/users/fetch', [MainController::class, 'all_users']);
+        Route::post('/users/analytics', [MainController::class, 'analytics']);
         Route::post('/users/edit', [MainController::class, 'update_user_details']);
         Route::get('/users/reset-password/{id}', [MainController::class, 'reset_user_password'])->name('reset-password');
 
