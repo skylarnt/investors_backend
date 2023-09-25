@@ -955,9 +955,9 @@ class MainController extends Controller
         }
         return $this->successResponse("Action successful", $property->paginate(50));
     }
-    public function ChangeStatus(Request $request, $property_id, $marketer_id)
+    public function ChangeStatus(Request $request, $approved_request_id, $marketer_id)
     {
-        $property = SellProperty::where(['property_id' => $property_id, 'marketer_id' => $marketer_id])
+        $property = SellProperty::where(['approved_request_id' => $approved_request_id, 'marketer_id' => $marketer_id])
             ->update([
                 'status' => $request->status
             ]);
