@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Support\Str;
 
 use App\Http\Controllers\Controller;
@@ -28,7 +29,7 @@ class AuthController extends Controller
     //
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login','register', 'register_marketer', 'sendPasswordResetEmail', 'change_password', 'passwordResetProcess', 'complete_profile', 'getAUser']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'register_marketer', 'sendPasswordResetEmail', 'change_password', 'passwordResetProcess', 'complete_profile', 'getAUser']]);
     }
 
 
@@ -42,27 +43,27 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|confirmed|string|min:8',
         ]);
-            if ($validator->fails()) {
-              return response()->json($validator->errors(),405);
-            }
-            $user = new Investor;
-            $user->fname = $request->fname;
-            $user->lname = $request->lname;
-            $user->email = $request->email;
-            $user->phone = $request->phone;
-            $user->country = $request->country;
-            $user->password = Hash::make($request->password);
-            $user->save();
-         
-            
-            $credentials = request(['email', 'password']);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 405);
+        }
+        $user = new Investor;
+        $user->fname = $request->fname;
+        $user->lname = $request->lname;
+        $user->email = $request->email;
+        $user->phone = $request->phone;
+        $user->country = $request->country;
+        $user->password = Hash::make($request->password);
+        $user->save();
 
-            if (!$token = auth()->attempt($credentials)) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-            // $user->delete();
 
-            return $this->respondWithToken($token);
+        $credentials = request(['email', 'password']);
+
+        if (!$token = auth()->attempt($credentials)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        // $user->delete();
+
+        return $this->respondWithToken($token);
     }
     public function register_marketer(Request $request)
     {
@@ -74,56 +75,57 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|confirmed|string|min:8',
         ]);
-            if ($validator->fails()) {
-              return response()->json($validator->errors(),405);
-            }
-            $user = new Investor;
-            $user->fname = $request->fname;
-            $user->lname = $request->lname;
-            $user->email = $request->email;
-            $user->phone = $request->phone;
-            $user->country = $request->country;
-            $user->user_type = 'marketer';
-            $user->password = Hash::make($request->password);
-            $user->save();
-         
-            
-            $credentials = request(['email', 'password']);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 405);
+        }
+        $user = new Investor;
+        $user->fname = $request->fname;
+        $user->lname = $request->lname;
+        $user->email = $request->email;
+        $user->phone = $request->phone;
+        $user->country = $request->country;
+        $user->user_type = 'marketer';
+        $user->password = Hash::make($request->password);
+        $user->save();
 
-            if (!$token = auth()->attempt($credentials)) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-            // $user->delete();
 
-            return $this->respondWithToken($token);
+        $credentials = request(['email', 'password']);
+
+        if (!$token = auth()->attempt($credentials)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        // $user->delete();
+
+        return $this->respondWithToken($token);
     }
 
-    public function get_marketer(Request $request){
+    public function get_marketer(Request $request)
+    {
         $marketers = Investor::where('user_type', 'marketer')->get();
         return $marketers;
     }
 
-    public function getMarketerProperty($property_id){
-        $propertywithmarketers = SellProperty::join('users' ,'users.id','marketer_id')
-        ->where(['property_id' => $property_id, 'user_id' => Auth::user()->id])
-        ->get()->toArray();
+    public function getMarketerProperty($property_id)
+    {
+        $propertywithmarketers = SellProperty::join('users', 'users.id', 'marketer_id')
+            ->where(['approved_request_id' => $property_id, 'user_id' => Auth::user()->id])
+            ->get()->toArray();
         // trying to make marketer id the main id
         foreach ($propertywithmarketers as $key => $value) {
             $propertywithmarketers[$key]['id'] = $value['marketer_id'];
         }
-        return response()->json(['propertywithmarketers' => $propertywithmarketers],200);
-
+        return response()->json(['propertywithmarketers' => $propertywithmarketers], 200);
     }
 
     public function loginAs($user_id)
     {
-       
+
         if (!$user_id) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
-        
+
         $user = Investor::where('id', $user_id)->first();
-        
+
         $tok = JWTAuth::fromUser($user);
         return $this->respondWithToken2($tok, $user);
     }
@@ -136,12 +138,12 @@ class AuthController extends Controller
     {
         $credentials = request(['email', 'password']);
 
-        if (! $token = auth()->attempt($credentials)) {
+        if (!$token = auth()->attempt($credentials)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-       
-        
+
+
 
         return $this->respondWithToken($token);
     }
@@ -155,7 +157,7 @@ class AuthController extends Controller
 
     protected function respondWithToken($token)
     {
-        $user = Investor::where('id',auth()->user()->id)->first();
+        $user = Investor::where('id', auth()->user()->id)->first();
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
@@ -163,7 +165,7 @@ class AuthController extends Controller
             'data' => $user
         ]);
     }
-    
+
     protected function respondWithToken2($token, $user)
     {
         return response()->json([
@@ -175,9 +177,10 @@ class AuthController extends Controller
     }
 
 
-    public function sendPasswordResetEmail(Request $request){
+    public function sendPasswordResetEmail(Request $request)
+    {
         // If email does not exist
-        if(!$this->validEmail($request->email)) {
+        if (!$this->validEmail($request->email)) {
             return response()->json([
                 'message' => 'Email does not exist.'
             ], Response::HTTP_NOT_FOUND);
@@ -186,53 +189,58 @@ class AuthController extends Controller
             $this->sendMail($request->email);
             return response()->json([
                 'message' => 'Check your inbox, we have sent a link to reset email.'
-            ], Response::HTTP_OK);            
+            ], Response::HTTP_OK);
         }
     }
-    public function sendMail($email){
+    public function sendMail($email)
+    {
         $token = $this->generateToken($email);
         Mail::to($email)->send(new SendMailInvestors($token));
     }
-    public function validEmail($email) {
+    public function validEmail($email)
+    {
         return !!Investor::where('email', $email)->first();
-     }
+    }
 
-     public function passwordResetProcess(UpdatePasswordRequest $request){
+    public function passwordResetProcess(UpdatePasswordRequest $request)
+    {
         return $this->updatePasswordRow($request)->count() > 0 ? $this->resetPassword($request) : $this->tokenNotFoundError();
-      }
-      public function getEmailUsingToken(Request $request)
-      {
-          $data=null;
-          if($request->has("token")) {
-              $data = PasswordReset::where('token', $request->token)->first()->email;
-          }
-          return response()->json($data ?? 0, 200);
-      }
-    private function updatePasswordRow($request){
+    }
+    public function getEmailUsingToken(Request $request)
+    {
+        $data = null;
+        if ($request->has("token")) {
+            $data = PasswordReset::where('token', $request->token)->first()->email;
+        }
+        return response()->json($data ?? 0, 200);
+    }
+    private function updatePasswordRow($request)
+    {
         return PasswordReset::where([
             'email' => $request->email,
             'token' => $request->token
         ]);
-     }
-      // Reset password
-      private function resetPassword($request) {
+    }
+    // Reset password
+    private function resetPassword($request)
+    {
         // find email
         $userData = Investor::whereEmail($request->email)->first();
         // update password
         $userData->update([
-          'password'=>bcrypt($request->password)
+            'password' => bcrypt($request->password)
         ]);
         // remove verification data from db
         $this->updatePasswordRow($request)->delete();
         // reset password response
         return response()->json([
-          'data'=>'Password has been updated.'
-        ],Response::HTTP_CREATED);
+            'data' => 'Password has been updated.'
+        ], Response::HTTP_CREATED);
     }
 
     public function change_password(Request $request)
     {
-        
+
         $user = Investor::where('id', $request->input('id'))->first();
         $hashedPassword = $user->password;
 
@@ -261,32 +269,34 @@ class AuthController extends Controller
             }
             return response()->json($password_error, 500);
         }
-
     }
-    public function generateToken($email){
+    public function generateToken($email)
+    {
         $isOtherToken = PasswordReset::where('email', $email)->first();
-        if($isOtherToken) {
-          return url(request()->header('origin')).'/reset/'.$isOtherToken->token;
+        if ($isOtherToken) {
+            return url(request()->header('origin')) . '/reset/' . $isOtherToken->token;
         }
         $token = Str::random(80);;
         $this->storeToken($token, $email);
-        return url(request()->header('origin')).'/reset/'.$token;
-      }
-      public function storeToken($token, $email){
-          PasswordReset::create([
-              'email' => $email,
-              'token' => $token,
-              'created_at' => Carbon::now()            
-          ]);
-      }
-     // Token not found response
-     private function tokenNotFoundError() {
+        return url(request()->header('origin')) . '/reset/' . $token;
+    }
+    public function storeToken($token, $email)
+    {
+        PasswordReset::create([
+            'email' => $email,
+            'token' => $token,
+            'created_at' => Carbon::now()
+        ]);
+    }
+    // Token not found response
+    private function tokenNotFoundError()
+    {
         return response()->json([
-          'error' => 'Either your email or token is wrong.'
-        ],Response::HTTP_UNPROCESSABLE_ENTITY);
+            'error' => 'Either your email or token is wrong.'
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
-    public function complete_profile() 
+    public function complete_profile()
     {
         try {
             $update_user = Investor::where('id', request()->id)->update([
@@ -298,22 +308,19 @@ class AuthController extends Controller
                 'phone' => request()->phone,
                 'country' => request()->country
             ]);
-             return response()->json(['message' => 'Profile updated successfully'], 200);
+            return response()->json(['message' => 'Profile updated successfully'], 200);
 
             //code...
         } catch (\Throwable $th) {
-        return response()->json(['message' => 'Unable to update profile, please try again later', $th->getMessage()], 500);
+            return response()->json(['message' => 'Unable to update profile, please try again later', $th->getMessage()], 500);
 
             //throw $th;
         }
-      
-
     }
 
     public function getAUser()
     {
 
         return Investor::where('id', request()->filters)->first();
-
     }
 }

@@ -306,25 +306,24 @@ class MainController extends Controller
     }
     public function completed_request()
     {
-        return $this->successResponse(
-            'Approved Request fetched successfully',
-            ApprovedRequest::with(['request'])
+        $approvedRequest = ApprovedRequest::with(['request'])
+            ->whereHas('request', function ($q) {
+                $q->where('investor_id', auth()->user()->id);
+            })
+            ->withCount([
+                'amount_paid as amount_paid' => function ($q) {
+                    $q->select(DB::raw("SUM(amount) as amount"))
+                        ->where('investor_id', auth()->user()->id);
+                }
+            ])
+            ->withCount('attached_marketer')
+            ->where('status', 'completed')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-                ->whereHas('request', function ($q) {
-                    $q->where('investor_id', auth()->user()->id);
-                })
-                ->withCount([
-                    'amount_paid as amount_paid' => function ($q) {
-                        $q->select(DB::raw("SUM(amount) as amount"))
-                            ->where('investor_id', auth()->user()->id);
-                    }
-                ])
-                ->where('status', 'completed')
-                ->orderBy('created_at', 'desc')
-
-                ->get()
-        );
+        return $this->successResponse('Approved Request fetched successfully', $approvedRequest);
     }
+
     public function all_approved_request(Request $request)
     {
         $approved = ApprovedRequest::with(['request', 'property'])
@@ -636,18 +635,18 @@ class MainController extends Controller
             if (!is_null($request->input('filter.usertype'))) {
                 $searchData = $request->input('filter.usertype');
                 $users->where(['user_type' => $searchData]);
-                    
             }
         }
         return $this->successResponse("All users", $users->orderBy('created_at', 'desc')->paginate(50));
     }
 
-    public function analytics(Request $request) {
+    public function analytics(Request $request)
+    {
         $stats = [];
 
-        $stats['tots_admin'] = Investor::where('user_type' , 'admin')->count();
-        $stats['tots_user'] = Investor::where('user_type' , 'user')->count();
-        $stats['tots_marketer'] = Investor::where('user_type' , 'marketer')->count();
+        $stats['tots_admin'] = Investor::where('user_type', 'admin')->count();
+        $stats['tots_user'] = Investor::where('user_type', 'user')->count();
+        $stats['tots_marketer'] = Investor::where('user_type', 'marketer')->count();
 
         return $this->successResponse("Stats", $stats);
     }
@@ -901,11 +900,11 @@ class MainController extends Controller
         foreach ($request->all() as $marketer) {
             if ($marketer['amount'] != '') {
                 SellProperty::updateOrCreate([
-                    'property_id' =>  $property_id,
+                    'approved_request_id' =>  $property_id,
                     'marketer_id' => $marketer['id'],
                     'user_id' => Auth::user()->id,
                 ], [
-                    'property_id' =>  $property_id,
+                    'approved_request_id' =>  $property_id,
                     'marketer_id' => $marketer['id'],
                     'amount' => $marketer['amount'],
                     'user_id' => Auth::user()->id,
@@ -917,7 +916,7 @@ class MainController extends Controller
 
     public function deleteMarkerters(Request $request, $property_id)
     {
-        $property = SellProperty::where(['property_id' => $property_id, 'marketer_id' => $request->marketer_id,'user_id' => Auth::user()->id]);
+        $property = SellProperty::where(['property_id' => $property_id, 'marketer_id' => $request->marketer_id, 'user_id' => Auth::user()->id]);
         if ($property->first()->status == 'pending') {
             $property->delete();
             return $this->successResponse("Action successful");
@@ -930,7 +929,8 @@ class MainController extends Controller
     public function getMarketersProperty(Request $request)
     {
         // return Auth::user()->id;
-        $property = SellProperty::join('investors_properties', 'investors_properties.id', 'property_id')
+        $property = SellProperty::join('approved_requests', 'approved_requests.id', 'sell_properties.approved_request_id')
+            ->join('investors_properties', 'investors_properties.id', 'approved_requests.investor_property_id')
             ->select('*', 'investors_properties.amount as property_price', 'sell_properties.amount as amount_to_be_sold', 'sell_properties.status as property_status')
             ->where(['marketer_id' => Auth::user()->id]);
 
@@ -943,9 +943,10 @@ class MainController extends Controller
         return $this->successResponse("Action successful", $property->paginate(50));
     }
 
-    public function manageMarketers(Request $request)  {
+    public function manageMarketers(Request $request)
+    {
         // return 1234;
-        $property = SellProperty::with('marketer','property')->where(['user_id' => Auth::user()->id]);
+        $property = SellProperty::with('marketer', 'property', 'approved_request.property')->where(['user_id' => Auth::user()->id]);
         if ($request->has('filter')) {
             if (!is_null($request->input('filter.status'))) {
                 $searchData = $request->input('filter.status');
@@ -954,7 +955,7 @@ class MainController extends Controller
         }
         return $this->successResponse("Action successful", $property->paginate(50));
     }
-    public function ChangeStatus(Request $request, $property_id,$marketer_id)
+    public function ChangeStatus(Request $request, $property_id, $marketer_id)
     {
         $property = SellProperty::where(['property_id' => $property_id, 'marketer_id' => $marketer_id])
             ->update([

@@ -14,7 +14,7 @@ class ApprovedRequest extends Model
     public $incrementing = false;
     protected $keyType = "string";
     protected $primaryKey = "id";
-    protected $guarded=[];
+    protected $guarded = [];
 
     public static function boot()
     {
@@ -22,7 +22,6 @@ class ApprovedRequest extends Model
 
         static::creating(function ($user) {
             $user->id = Uuid::uuid4();
-
         });
 
         static::created(function ($user) {
@@ -31,21 +30,25 @@ class ApprovedRequest extends Model
             //     'status' => 'approved'
             // ]);
         });
-
     }
 
     public function request()
     {
-        return $this->belongsTo(Request::class, 'request_id','id');
+        return $this->belongsTo(Request::class, 'request_id', 'id');
     }
     public function property()
     {
-        return $this->belongsTo(InvestorsProperty::class, 'investor_property_id','id');
+        return $this->belongsTo(InvestorsProperty::class, 'investor_property_id', 'id');
     }
-    
-    public function amount_paid() {
-        return $this->hasMany(RequestTransaction::class, 'approved_request_id','id')
-        ->where('status', 'approved');
 
+    public function amount_paid()
+    {
+        return $this->hasMany(RequestTransaction::class, 'approved_request_id', 'id')
+            ->where('status', 'approved');
+    }
+
+    public function attached_marketer()
+    {
+        return $this->hasMany(SellProperty::class, 'approved_request_id', 'id');
     }
 }

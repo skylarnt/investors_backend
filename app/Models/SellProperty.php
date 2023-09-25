@@ -16,6 +16,11 @@ class SellProperty extends Model
         return $this->belongsTo(InvestorsProperty::class, 'property_id','id');
     }
 
+    public function approved_request()
+    {
+        return $this->belongsTo(ApprovedRequest::class, 'approved_request_id','id');
+    }
+
     public function marketer()
     {
         return $this->belongsTo(Investor::class, 'marketer_id','id');

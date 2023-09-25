@@ -15,11 +15,11 @@ class CreateSellPropertiesTable extends Migration
     {
         Schema::create('sell_properties', function (Blueprint $table) {
             $table->id();
-            $table->uuid('property_id');
+            $table->uuid('approved_request_id');
             $table->uuid('marketer_id');
             $table->uuid('user_id');
             $table->string('amount');
-            $table->enum('status', ['pending','sold','completed'])->default('pending');
+            $table->enum('status', ['pending', 'sold', 'completed'])->default('pending');
             $table->timestamps();
         });
     }
