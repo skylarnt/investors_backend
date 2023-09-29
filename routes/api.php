@@ -111,7 +111,7 @@ Route::group(['middleware' => 'api'], function ($router) {
                 
             });
             Route::post('attach-marketers/{property_id}', [MainController::class, 'attachMarkerters']);
-            Route::post('delete-marketers/{property_id}', [MainController::class, 'deleteMarkerters']);
+            Route::post('delete-marketers/{approve_request_id}', [MainController::class, 'deleteMarkerters']);
             Route::post('get-marketers-property', [MainController::class, 'getMarketersProperty']);
             Route::post('manage-marketers-property', [MainController::class, 'manageMarketers']);
             Route::post('toggle-status/{approved_request_id}/{marketer_id}', [MainController::class, 'ChangeStatus']);

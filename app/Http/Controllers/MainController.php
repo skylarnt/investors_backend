@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Request as InvestorsRequest;
 use Illuminate\Http\Request;
 use App\Http\Traits\ApiResponseTrait;
+use App\Mail\NotifyMarketer;
 use App\Models\ApprovedRequest;
 use App\Models\Investor;
 use App\Models\InvestorsProperty;
@@ -15,9 +16,11 @@ use App\Models\RequestTransaction;
 use App\Models\SellProperty;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -898,6 +901,12 @@ class MainController extends Controller
     public function attachMarkerters(Request $request, $property_id)
     {
         foreach ($request->all() as $marketer) {
+            $result = DB::table('sell_properties')
+                ->join('approved_requests', 'sell_properties.approved_request_id', '=', 'approved_requests.id')
+                ->join('requests', 'approved_requests.request_id', '=', 'requests.id')
+                ->select('sell_properties.*', 'approved_requests.*', 'requests.*')
+                ->where('sell_properties.marketer_id', $marketer["id"])
+                ->first();
             if ($marketer['amount'] != '') {
                 SellProperty::updateOrCreate([
                     'approved_request_id' =>  $property_id,
@@ -909,14 +918,35 @@ class MainController extends Controller
                     'amount' => $marketer['amount'],
                     'user_id' => Auth::user()->id,
                 ]);
+
+                $user = Investor::where('id', $marketer['id'])->first();
+                if (empty($user)) {
+                    return $this->failureResponse("Marketer does not exist");
+                }
+                $payload = [
+                    'request' => $result,
+                    'amount' => $marketer['amount'],
+                    'name' => $user->fname
+                ];
+                try {
+                    $check = SellProperty::where(['approved_request_id' =>  $property_id, 'marketer_id' => $marketer['id']]);
+                    if ($check->first()->is_notified == 'false') {
+                        Mail::to($user->email)->send(new NotifyMarketer($payload));
+                        $check->update([
+                            'is_notified' => 'true'
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    return $e->getMessage();
+                }
             }
         }
-        return $this->successResponse("Action successful");
+        return $this->successResponse("Action successfull");
     }
 
-    public function deleteMarkerters(Request $request, $property_id)
+    public function deleteMarkerters(Request $request, $approve_request_id)
     {
-        $property = SellProperty::where(['property_id' => $property_id, 'marketer_id' => $request->marketer_id, 'user_id' => Auth::user()->id]);
+        $property = SellProperty::where(['approved_request_id' => $approve_request_id, 'marketer_id' => $request->marketer_id, 'user_id' => Auth::user()->id]);
         if ($property->first()->status == 'pending') {
             $property->delete();
             return $this->successResponse("Action successful");
@@ -957,10 +987,25 @@ class MainController extends Controller
     }
     public function ChangeStatus(Request $request, $approved_request_id, $marketer_id)
     {
-        $property = SellProperty::where(['approved_request_id' => $approved_request_id, 'marketer_id' => $marketer_id])
-            ->update([
-                'status' => $request->status
-            ]);
+        $check = SellProperty::where(['approved_request_id' => $approved_request_id])->get();
+        $soldPropertyExists = false;
+
+        foreach ($check as $key => $value) {
+            if ($value->status == 'sold' && $request->status == 'sold') {
+                $soldPropertyExists = true;
+                $this->failureResponse("Property has already been sold");
+                break;
+            }
+        }
+
+        if (!$soldPropertyExists) {
+            $property = SellProperty::where(['approved_request_id' => $approved_request_id, 'marketer_id' => $marketer_id])
+                ->update([
+                    'status' => $request->status
+                ]);
+        }
+
+
 
         return $this->successResponse("Action successful", $property);
     }

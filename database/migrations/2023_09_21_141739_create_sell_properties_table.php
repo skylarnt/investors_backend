@@ -20,6 +20,7 @@ class CreateSellPropertiesTable extends Migration
             $table->uuid('user_id');
             $table->string('amount');
             $table->enum('status', ['pending', 'sold', 'completed'])->default('pending');
+            $table->enum('is_notified', ['true', 'false'])->default('false');
             $table->timestamps();
         });
     }
