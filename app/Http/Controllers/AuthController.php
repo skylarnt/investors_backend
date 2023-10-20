@@ -23,6 +23,7 @@ use App\Http\Requests\UpdatePasswordRequest;
 use App\Mail\SendMailInvestors;
 use App\Models\PasswordReset;
 use App\Models\SellProperty;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -67,6 +68,14 @@ class AuthController extends Controller
     }
     public function register_marketer(Request $request)
     {
+        if ($request->hasFile('avatar')) {
+            $image = $request->file('avatar');
+            $originalName = $image->getClientOriginalName();
+            $path = Storage::putFileAs('public/images', $image,$originalName);
+            $file = storage_path('app/'.$path);
+            // $file = Storage::url('app/'.$path);
+            $url = asset('storage/images/'.$originalName);
+        }
         $validator = Validator::make($request->all(), [
             'fname' => 'required|string|max:255',
             'lname' => 'required|string|max:255',
@@ -80,6 +89,7 @@ class AuthController extends Controller
         }
         $user = new Investor;
         $user->fname = $request->fname;
+        $user->avatar = $url ? $url : null;
         $user->lname = $request->lname;
         $user->email = $request->email;
         $user->phone = $request->phone;
@@ -298,12 +308,21 @@ class AuthController extends Controller
 
     public function complete_profile()
     {
+        if (request()->hasFile('avatar')) {
+            $image = request()->file('avatar');
+            $originalName = $image->getClientOriginalName();
+            $path = Storage::putFileAs('public/images', $image,$originalName);
+            $file = storage_path('app/'.$path);
+            // $file = Storage::url('app/'.$path);
+            $url = asset('storage/images/'.$originalName);
+        }
         try {
             $update_user = Investor::where('id', request()->id)->update([
                 'fname' => request()->fname,
                 'lname' => request()->lname,
                 'mname' => request()->mname,
                 'gender' => request()->gender,
+                'avatar' => $url ? $url : null,
                 'email' => request()->email,
                 'phone' => request()->phone,
                 'country' => request()->country
