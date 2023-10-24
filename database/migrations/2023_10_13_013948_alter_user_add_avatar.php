@@ -13,9 +13,11 @@ class AlterUserAddAvatar extends Migration
      */
     public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
-           $table->string('avatar')->nullable();
-        });
+        if(Schema::hasColumn('users', 'user_avatar')){
+            Schema::table('users', function (Blueprint $table) {
+               $table->string('avatar')->nullable();
+            });
+        }
     }
 
     /**
@@ -26,7 +28,7 @@ class AlterUserAddAvatar extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            $table->dropColumn('avatar');
         });
     }
 }

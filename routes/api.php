@@ -121,6 +121,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('/users/fetch', [MainController::class, 'all_users']);
         Route::post('/users/analytics', [MainController::class, 'analytics']);
         Route::post('/users/edit', [MainController::class, 'update_user_details']);
+        Route::delete('/users/delete/{id}', [MainController::class, 'deleteUserDetails']);
         Route::get('/users/reset-password/{id}', [MainController::class, 'reset_user_password'])->name('reset-password');
 
 

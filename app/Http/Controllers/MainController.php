@@ -13,6 +13,7 @@ use App\Models\Investor;
 use App\Models\InvestorsProperty;
 use App\Models\RequestConversation;
 use App\Models\RequestTransaction;
+use App\Models\Request as ModelRequest;
 use App\Models\SellProperty;
 use App\Models\Transaction;
 use Carbon\Carbon;
@@ -985,6 +986,7 @@ class MainController extends Controller
         }
         return $this->successResponse("Action successful", $property->paginate(50));
     }
+
     public function ChangeStatus(Request $request, $approved_request_id, $marketer_id)
     {
         $check = SellProperty::where(['approved_request_id' => $approved_request_id])->get();
@@ -1008,5 +1010,19 @@ class MainController extends Controller
 
 
         return $this->successResponse("Action successful", $property);
+    }
+    
+    public function deleteUserDetails($id)
+    {
+        $request = ModelRequest::where('investor_id', $id)->pluck('id')->toArray();
+        if(!empty($request)){
+            RequestTransaction::where('investor_id', $id)->delete();
+            RequestConversation::whereIn('request_id', $request)->delete();
+            ApprovedRequest::whereIn('request_id', $request)->delete();
+            $request = ModelRequest::where('investor_id', $id)->delete();
+        }
+        $user = User::where('id', $id)->delete();
+
+        return $this->successResponse("Action successful", $user);
     }
 }
